@@ -1,0 +1,176 @@
+#include "at89c51rc2.h"
+#define LCD P0
+#define Putc WriteData
+
+#define get_first_hdr		1
+#define get_second_hdr		2
+#define check_first_chr		3
+#define check_second_chrq	4
+#define check_second_chrb	5
+#define get_time_info		6
+#define get_track_info		7
+#define idle					18
+#define One_hour_pulse		19
+#define Two_min_pulse		20
+#define generate_pulse		21
+#define check_button			22
+#define sw_interrupt			23
+#define generate_pps			24
+
+sbit RS			=	P2^7;
+sbit RW			=	P2^6;
+sbit ELCD		=	P2^5;
+sbit BKLT		=	P2^4;
+sbit BS  		= P0^7;
+sbit pulse_out = P1^0;
+sbit pps 		= P1^1;
+sbit SW  		= P1^4;
+
+idata unsigned char gps_time[13];
+unsigned char track_satelites;
+unsigned char vis_satelites;
+unsigned char Temp;
+unsigned char rxFlag;
+unsigned char RxState;
+unsigned char state;
+unsigned char RxCntr;
+unsigned char commands=0;
+unsigned char q;
+bit A2;
+bit button;
+
+char Short_Position[]=  {'@', '@', 'H', 'b', 0x01, 0x2B, 0x0D, 0x0A,0};
+char ASCII_Position[]= {'@', '@', 'E', 'q', 0x01, 0x35, 0x0D, 0x0A,0};
+char Combined_Position[] = {'@','@','G','a',0x07,0x39,0xC0,0xEC,0x0F,0xAD,0x3F,0x28,0x00,0x00,0xBF,0x1C,0x00,0x22,0x0D,0x0A,0};
+
+void LcdBusy()
+{
+		BS   = 1;		//Make D7th bit of LCD as i/p
+   	ELCD   = 1;       //Make port pin as o/p
+   	RS   = 0;       //Selected command register
+   	RW   = 1;		//We are reading
+   	while(BS)
+   	{				//read busy flag again and again till it becomes 0 Enable H->L
+   		ELCD   = 0;
+      	ELCD   = 1;
+   	}
+}
+void WriteControl(unsigned char var)
+{
+		P0 = var;		//Commands to be Written
+   	RS   = 0;       //Selected command register
+   	RW   = 0;       //We are writing in instruction register
+   	ELCD   = 1;       //Enable H->L
+   	ELCD   = 0;
+   	LcdBusy();		//Wait for LCD to process the command
+}
+void WriteData(unsigned char var)
+{
+		P0 = var;		//Data/Character to be Written
+   	RS   = 1;       //Selected data register
+   	RW   = 0;       //We are writing
+   	ELCD   = 1;       //Enable H->L
+   	ELCD   = 0;
+   	LcdBusy();      //Wait for LCD to process the command
+}
+
+void InitDisp()
+{
+	WriteControl(0x38);
+	WriteControl(0x38);
+   WriteControl(0x38);
+	WriteControl(0x06);
+	WriteControl(0x0c);
+}
+void DispStr(char *s) 
+{
+	
+	while (*s)
+		WriteData(*s++);
+}
+void LCDCursor(unsigned char row, unsigned char col)
+{
+	switch (row)
+	{
+		case 1: WriteControl(0x80 + col - 1); break;
+		case 2: WriteControl(0xc0 + col - 1); break;
+		case 3: WriteControl(0x94 + col - 1); break;
+		case 4: WriteControl(0xd4 + col - 1); break;
+		default: break;
+	}
+}
+void Delay500us(void)
+{
+	TL0 = 0xF7;
+	TH0 = 0xFF;
+	TR0 = 1;
+	while(!TF0);
+	TR0 = 0;
+	TF0 = 0;
+}
+
+void DelayOnems(void)
+{
+	TL0 = 0xCD;
+	TH0 = 0xF8;
+	TR0 = 1;
+	while(!TF0);
+	TR0 = 0;
+	TF0 = 0;
+}
+void LCDClear()
+{
+ 	WriteControl(0x01);
+ 	DelayOnems();
+ 	DelayOnems();
+}
+unsigned char Getc(void)
+{
+	unsigned char c;
+	while(!RI);	c = SBUF; RI = 0;
+	return(c);
+}
+void SendChar(unsigned char ch)
+{
+	TI=1;
+	while (!TI);	TI=0;	SBUF = ch;
+	while (!TI);	TI=0; 	
+}
+void SendStr(char *cmd)
+{
+ 	TI=1;
+ 	while(*cmd)
+ 	{
+ 		while (!TI);	TI=0;	SBUF = *cmd;
+ 	 	cmd++;
+ 	}
+ 	while (!TI);	TI=0;
+}
+void TimeWindow(void)
+{
+      	LCDCursor(1, 1);
+         DispStr("    SDAS Tester");
+   
+         LCDCursor(2, 3);
+         DispStr("VISI:");
+         Putc((vis_satelites/10)+48);
+         Putc((vis_satelites%10)+48);
+         
+         DispStr("  TRAC:");
+         Putc((track_satelites/10)+48);Putc((track_satelites%10)+48);
+         LCDCursor(3, 2);
+         DispStr(" DATE: ");
+         Putc(gps_time[2]);  Putc(gps_time[3]);Putc('-');
+         Putc(gps_time[0]);
+         Putc(gps_time[1]);Putc('-');
+         Putc('2'); Putc('0');
+         Putc(gps_time[4]); Putc(gps_time[5]);
+         LCDCursor(4, 4);
+         DispStr("TIME: ");
+         Putc(gps_time[6]); Putc(gps_time[7]);Putc(':');
+         Putc(gps_time[8]); Putc(gps_time[9]);Putc(':');
+         Putc(gps_time[10]); Putc(gps_time[11]);
+
+        
+}
+

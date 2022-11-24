@@ -1,0 +1,46 @@
+WIN32 L51 CODE BANKING LINKER/LOCATOR V4.08.06,  INVOKED BY: 
+L51.EXE f:\p\sdas_tester\sdastt_v1.0 04-11-10\main.OBJ  to  F:\P\SDAS_TESTER\SDASTT_V1.0 04-11-10\SDASTT.ABS PR(F:\P\SDAS_TESTER\SDASTT_V1.0 04-11-10\SDASTT.M51) SN(1066142959415E46769E694) PW(80) RS(256) ix 
+
+INTER-MODULE CROSS-REFERENCE LISTING
+------------------------------------
+
+    NAME. . . . . . . . USAGE   MODULE NAMES
+    ----------------------------------------
+    ?C_INITSEGSTART . . CODE    [_C_INITD]:  C1S 
+    ?C_START1 . . . . . CODE    [C1S]:  MAIN 
+    A2  . . . . . . . . BIT     [MAIN]: 
+    ASCII_POSITION  . . DATA    [MAIN]: 
+    BUTTON  . . . . . . BIT     [MAIN]: 
+    COMBINED_POSITION . DATA    [MAIN]: 
+    COMMANDS  . . . . . DATA    [MAIN]: 
+    DELAY500US  . . . . CODE    [MAIN]: 
+    DELAYONEMS  . . . . CODE    [MAIN]: 
+    GETC  . . . . . . . CODE    [MAIN]: 
+    GMT_OFFSET  . . . . DATA    [MAIN]: 
+    GPS_TIME  . . . . . IDATA   [MAIN]: 
+    IDATALEN  . . . . .         [_C_IDATALEN]:  C1S 
+    INITDISP  . . . . . CODE    [MAIN]: 
+    IPGN1?C . . . . . . CODE    [IPGN1]:  MAIN 
+    LCDBUSY . . . . . . CODE    [MAIN]: 
+    LCDCLEAR  . . . . . CODE    [MAIN]: 
+    MAIN  . . . . . . . CODE    [MAIN]:  C1S 
+    PCATIMERS . . . . . CODE    [MAIN]: 
+    Q . . . . . . . . . DATA    [MAIN]: 
+    RXCNTR  . . . . . . DATA    [MAIN]: 
+    RXFLAG  . . . . . . DATA    [MAIN]: 
+    RXSTATE . . . . . . DATA    [MAIN]: 
+    SERIAL_ISR  . . . . CODE    [MAIN]: 
+    SHORT_POSITION  . . DATA    [MAIN]: 
+    STATE . . . . . . . DATA    [MAIN]: 
+    TEMP  . . . . . . . DATA    [MAIN]: 
+    TIMEWINDOW  . . . . CODE    [MAIN]: 
+    TRACK_SATELITES . . DATA    [MAIN]: 
+    VIS_SATELITES . . . DATA    [MAIN]: 
+    _DISPSTR  . . . . . CODE    [MAIN]: 
+    _INITP2?  . . . . .         [_C_IDATALEN]:  C1S 
+    _LCDCURSOR  . . . . CODE    [MAIN]: 
+    _SENDCHAR . . . . . CODE    [MAIN]: 
+    _SENDSTR  . . . . . CODE    [MAIN]: 
+    _STACK  . . . . . . IDATA   [MAIN]:  C1S 
+    _WRITECONTROL . . . CODE    [MAIN]: 
+    _WRITEDATA  . . . . CODE    [MAIN]: 

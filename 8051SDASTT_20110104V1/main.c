@@ -1,0 +1,236 @@
+#include "sdas.h"
+
+/*
+	Modification:	Alignment of Pulse Out with That of 1PPS
+						Setting @@Hb as first Command, by Reseting Command=0 in 1PPS interrupt
+						
+		24-01-2011:			GMT Offset Added
+*/
+void main(void)
+{
+  	unsigned int dly;
+  	CMOD = 0x00;
+	CH = 0x00;
+	CL = 0x00;
+	CCAP0H = 0x00;
+	CCAP0L = 0x00;
+	CCAPM0 = 0x21;	// Positive Edge Capture (pps)
+	CCAPM1 = 0x31;	// Positive/Negative Edge Capture (switch)
+
+   SCON = 0x52;
+	TMOD = 0x21;
+	TH1  = -6;
+	TR1  = 1;
+	//ES = 1;
+	//EC = 1;
+	//EA = 1;
+
+	BKLT   = 1;
+	pps = 0;
+	pulse_out = 0;
+	
+	state = idle;
+	
+	InitDisp(); 
+   LCDClear();	
+   LCDCursor(2,4);
+	DispStr("Plz wait..");
+
+ 	// Delay required for GPS Reciever
+ 	// Increased to 2 sec; because of initialization in cold start
+  	for(dly=0;dly<2000;dly++)
+	 DelayOnems();
+ 
+   SendStr(Short_Position);
+   while(Getc()!=10);
+	Putc('.');
+	SendStr(ASCII_Position);   
+	while(Getc()!=10);
+	Putc('.');
+	SendStr(Combined_Position);   
+	while(Getc()!=10);
+	Putc('.');
+			
+	ES = 1;
+	EC = 1;
+	EA = 1;
+	button = SW;
+	RxState = get_first_hdr;
+
+	while(1)
+	{
+	   if(rxFlag)
+  		{
+   		rxFlag = 0;
+	     	switch (RxState)
+			{
+				case get_first_hdr:
+					if(Temp == '@')
+						RxState = get_second_hdr;
+	         	break;
+				case get_second_hdr:
+					if(Temp == '@')
+					{
+						RxState = check_first_chr;
+						RxCntr = 0;
+					}
+					else
+						RxState = get_first_hdr;
+					break;
+				case check_first_chr:
+					if(Temp=='E')
+						RxState   = check_second_chrq;	
+					else if(Temp=='H')
+						RxState   = check_second_chrb;	
+					break;
+				case check_second_chrq:
+					if(Temp=='q')
+						RxState   = get_time_info;
+					break;
+				case check_second_chrb:
+					if(Temp=='b')
+						RxState   = get_track_info;
+					break;
+				case get_time_info:
+					if(RxCntr<12 && Temp!=',')
+						gps_time[RxCntr++] = Temp;
+					else if(RxCntr==12) 
+					{
+				 		commands++;
+				 		RxState = get_first_hdr;
+				 		if (commands==2) state = check_button;
+					}
+					break;
+				case get_track_info:
+      	   	RxCntr++;
+					if(RxCntr == 36)
+         			vis_satelites = Temp;
+	  				if(RxCntr == 37)
+  					{
+      	   		track_satelites = Temp;
+						commands++;
+						if (commands==2) state = check_button;
+						RxState = get_first_hdr;
+
+	         	}
+					break;
+  				}// End Switch
+			}//if rxFlag
+		switch(state)
+		{
+	 	case idle:
+	 		break;
+	 	case sw_interrupt:
+	 		DelayOnems();
+	 		DelayOnems();
+			if(SW)
+				button = 1;
+			else
+				button = 0;
+			state = idle;
+			break;
+	 	case check_button:
+	 		TimeWindow();
+	 		if(button)
+	 			state = One_hour_pulse;
+	 		else
+	 			state = Two_min_pulse;
+	 		break;
+	 	case One_hour_pulse:
+			if((gps_time[8]==0x33) && (gps_time[9]==0x30) && (gps_time[10]==0x32) && (gps_time[11]==0x39)) 
+				A2 =1;
+			else 
+				A2 = 0;
+			state = idle;
+	 		break;
+	 	case Two_min_pulse:
+			if(((gps_time[9]%2)==0) && (gps_time[10]==0x32) && (gps_time[11]==0x39)) 
+     			A2 =1;
+			else 
+     			A2 = 0;
+	 		state = idle;
+	 		break;
+	 	case generate_pps:
+	 		pps = 1;
+ 			pps = 1;
+			pps = 0;
+	   	state = idle;
+			break;
+	 	case generate_pulse:
+	 		pulse_out = 1;
+ 			pulse_out = 1;
+	 		pulse_out = 0;
+	 		state = idle;
+	 		break;
+		}//switch			
+	}//while
+}//main
+void serial_isr(void) interrupt 4
+{	
+	if(RI)
+	{
+ 	 	rxFlag = 1;
+	 	RI = 0;
+		Temp = SBUF;
+	}
+}
+void PCATimers() interrupt 6 using 1
+{
+	if(CCF0)	// +ve edge of 1pps
+	{
+		CCF0 = 0;
+		commands = 0; ///
+		pulse_out = A2;
+		pulse_out = A2;
+ 		pulse_out = 0;
+		state = generate_pps;
+
+	}//CCF0
+	if(CCF1)
+	{
+		CCF1 = 0;
+		state = sw_interrupt;
+	}//CCF1
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
